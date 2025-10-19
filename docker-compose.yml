@@ -1,0 +1,28 @@
+# Arquivo: docker-compose.yml
+# Versão do Docker Compose
+version: '3.8'
+
+# Definição dos nossos serviços
+services:
+  # Serviço do RabbitMQ
+  rabbitmq:
+    # Imagem oficial do RabbitMQ com a interface de gerenciamento
+    image: rabbitmq:3.13-management
+    container_name: onion_rabbitmq # Nome do container para fácil identificação
+    hostname: rabbitmq # Nome da rede interna que o .NET irá usar para se conectar
+    ports:
+      # Porta para a aplicação se conectar (AMQP port) -> host:container
+      - "5672:5672"
+      # Porta para a interface de gerenciamento web -> host:container
+      - "15672:15672"
+    environment:
+      # Credenciais padrão (use algo mais seguro para produção)
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    volumes:
+      # Garante que os dados do RabbitMQ persistam ao reiniciar o container
+      - rabbitmq_data:/var/lib/rabbitmq/
+
+# Definição dos volumes para persistência de dados
+volumes:
+  rabbitmq_data:
