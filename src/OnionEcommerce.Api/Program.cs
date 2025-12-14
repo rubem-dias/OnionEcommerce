@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Onion.Ecommerce.Infrastructure.Messaging;
 using OnionEcommerce.Application;          // Para o AddApplicationServices
 using OnionEcommerce.Infrastructure;       // Para o AddInfrastructureServices
 using OnionEcommerce.Infrastructure.Persistence;
@@ -58,6 +59,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
 
+// Registra o serviço que consome mensagens do RabbitMQ
+builder.Services.AddScoped<UserRegistrationConsumerBackgroundService>();
+
 // --- 2. CONSTRUÇÃO DA APLICAÇÃO ---
 var app = builder.Build();
 
@@ -71,6 +75,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// Inicia o consumer de RabbitMQ usando um escopo
+using (var scope = app.Services.CreateScope())
+{
+    var consumerService = scope.ServiceProvider.GetRequiredService<UserRegistrationConsumerBackgroundService>();
+    consumerService.StartConsumer();
+}
 
 // Hook para fechar a conexão do RabbitMQ de forma elegante
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
