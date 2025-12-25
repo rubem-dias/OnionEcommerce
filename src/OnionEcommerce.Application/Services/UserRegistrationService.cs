@@ -40,7 +40,6 @@ public class UserRegistrationService : IScopedService
         await _unitOfWork.Users.AddAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
-        // Publica evento de registro de usuário na fila user-registration
         var userRegisteredEvent = new UserRegisteredEvent
         {
             EventType = "UserRegistered",

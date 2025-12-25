@@ -16,23 +16,18 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-        // 1. Registro do Unit of Work, Password Hasher, Message Publisher e Email Service
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IMessagePublisher, RabbitMqPublisher>();
         services.AddScoped<IEmailService, MockEmailService>();
 
-        // 2. Registro do Event Router e Handlers de Eventos
         services.AddScoped<IEventRouter, EventRouter>();
-        // Registra handlers específicos para cada tipo de evento
         services.AddScoped<IEventHandler<UserRegisteredEvent>, UserRegisteredEventHandler>();
 
-        // 3. Registro do Consumer de RabbitMQ
         services.AddScoped<IMessageConsumer, RabbitMqUserRegistrationConsumer>();
 
-        // 4. Registro automático de todos os repositórios
-        // (Este código procura por qualquer classe que termine com "Repository" e a registra)
-        var repositoryAssembly = typeof(UserRepository).Assembly;
+        var repositoryAssembly = typeof(InfrastructureAssembly).Assembly;
+        
         var repositoryTypes = repositoryAssembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Repository"))
             .ToList();

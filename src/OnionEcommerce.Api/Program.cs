@@ -1,20 +1,16 @@
-using Microsoft.EntityFrameworkCore;
+Ôªøusing Microsoft.EntityFrameworkCore;
 using Onion.Ecommerce.Infrastructure.Messaging;
-using OnionEcommerce.Application;          // Para o AddApplicationServices
-using OnionEcommerce.Infrastructure;       // Para o AddInfrastructureServices
+using OnionEcommerce.Application;
+using OnionEcommerce.Infrastructure;
 using OnionEcommerce.Infrastructure.Persistence;
 using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. REGISTRO DE SERVI«OS ---
-
-// ServiÁos Padr„o da API
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ConfiguraÁ„o do RabbitMQ (seu cÛdigo)
 var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ");
 var factory = new ConnectionFactory
 {
@@ -25,16 +21,13 @@ var factory = new ConnectionFactory
 };
 builder.Services.AddSingleton<IConnection>(sp => factory.CreateConnection());
 
-
-// --- O AJUSTE VEM AQUI ---
-// ConfiguraÁ„o de PersistÍncia FlexÌvel
 var dbSettings = builder.Configuration.GetSection("DatabaseSettings");
 var provider = dbSettings.GetValue<string>("Provider");
 var connectionString = dbSettings.GetConnectionString(provider);
 
 if (string.IsNullOrEmpty(provider) || string.IsNullOrEmpty(connectionString))
 {
-    throw new InvalidOperationException("ConfiguraÁ„o do banco de dados est· incompleta.");
+    throw new InvalidOperationException("Configura√ß√£o do banco de dados est√° incompleta.");
 }
 
 Console.WriteLine($"Usando o provedor de banco de dados: {provider}");
@@ -47,25 +40,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(connectionString);
             break;
         case "Postgres":
-            // Lembre-se que j· adicionamos o pacote Npgsql.EntityFrameworkCore.PostgreSQL
             options.UseNpgsql(connectionString);
             break;
         default:
-            throw new NotSupportedException($"Provedor '{provider}' n„o È suportado.");
+            throw new NotSupportedException($"Provedor '{provider}' n√£o √© suportado.");
     }
 });
 
-// Registro dos ServiÁos das Camadas (Application & Infrastructure)
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
-
-// Registra o serviÁo que consome mensagens do RabbitMQ
 builder.Services.AddScoped<UserRegistrationConsumerBackgroundService>();
 
-// --- 2. CONSTRU«√O DA APLICA«√O ---
 var app = builder.Build();
 
-// --- 3. CONFIGURA«√O DO PIPELINE HTTP ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -76,19 +63,34 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-// Inicia o consumer de RabbitMQ usando um escopo
 using (var scope = app.Services.CreateScope())
 {
-    var consumerService = scope.ServiceProvider.GetRequiredService<UserRegistrationConsumerBackgroundService>();
-    consumerService.StartConsumer();
+    try
+    {
+        var consumerService = scope.ServiceProvider.GetRequiredService<UserRegistrationConsumerBackgroundService>();
+        consumerService.StartConsumer();
+        Console.WriteLine("‚úÖ RabbitMQ conectado e Consumer iniciado com sucesso.");
+    }
+    catch (RabbitMQ.Client.Exceptions.BrokerUnreachableException)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("\n‚ö†Ô∏è  AVISO: N√£o foi poss√≠vel conectar ao RabbitMQ.");
+        Console.WriteLine("   -> Verifique se o container Docker est√° rodando.");
+        Console.WriteLine("   -> A API continuar√° funcionando, mas o processamento de mensagens est√° INATIVO.\n");
+        Console.ResetColor();
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"\n‚ùå Erro cr√≠tico ao iniciar RabbitMQ: {ex.Message}\n");
+        Console.ResetColor();
+    }
 }
 
-// Hook para fechar a conex„o do RabbitMQ de forma elegante
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 lifetime.ApplicationStopping.Register(() =>
 {
     app.Services.GetService<IConnection>()?.Close();
 });
 
-// --- 4. EXECU«√O DA APLICA«√O ---
 app.Run();

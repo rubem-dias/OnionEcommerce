@@ -30,7 +30,6 @@ public class RabbitMqUserRegistrationConsumer : IMessageConsumer
             arguments: null
         );
 
-        // Define quantas mensagens o consumer processa por vez
         _channel.BasicQos(0, 1, false);
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
@@ -45,32 +44,22 @@ public class RabbitMqUserRegistrationConsumer : IMessageConsumer
                 Console.WriteLine($"\n?? Mensagem recebida da fila '{queueName}':");
                 Console.WriteLine($"   Conteúdo: {jsonMessage}");
 
-                // Deserializa a mensagem para obter o tipo de evento
                 using var doc = JsonDocument.Parse(jsonMessage);
                 var root = doc.RootElement;
 
                 var eventType = root.GetProperty("EventType").GetString();
 
-                // Roteia o evento para seu handler apropriado
                 await _eventRouter.RouteAsync(eventType, jsonMessage);
 
-                // Confirma que processou com sucesso
                 _channel.BasicAck(ea.DeliveryTag, false);
-
-                Console.WriteLine($"? Mensagem processada com sucesso!\n");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"? Erro ao processar mensagem: {ex.Message}");
-
-                // Rejeita a mensagem e a coloca de volta na fila
                 _channel.BasicNack(ea.DeliveryTag, false, true);
             }
         };
 
         _channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
-
-        Console.WriteLine($"?? Consumer iniciado! Aguardando mensagens da fila '{queueName}'...\n");
     }
 
     public void StopConsuming()

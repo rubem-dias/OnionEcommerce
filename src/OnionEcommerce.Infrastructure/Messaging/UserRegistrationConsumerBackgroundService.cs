@@ -17,11 +17,9 @@ public class UserRegistrationConsumerBackgroundService
 
     public void StartConsumer()
     {
-        // Cria um scope para obter a dependência
         var scope = _serviceProvider.CreateScope();
         var consumer = scope.ServiceProvider.GetRequiredService<IMessageConsumer>();
 
-        // Inicia o consumer na fila user-registration em uma thread separada
         _ = Task.Run(() => consumer.StartConsuming("user-registration"));
     }
 }
