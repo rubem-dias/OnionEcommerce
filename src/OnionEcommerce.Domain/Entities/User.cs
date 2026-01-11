@@ -1,4 +1,5 @@
 ﻿using Onion.Ecommerce.Domain.Common;
+using OnionEcommerce.Domain.Enums;
 
 namespace Onion.Ecommerce.Domain.Entities;
 
@@ -10,13 +11,16 @@ public class User : AuditableEntity
 
     public string PasswordHash { get; private set; }
 
-    private User(string fullName, string email)
+    public UserRole Role { get; private set; }
+
+    private User(string fullName, string email, UserRole role)
     {
         FullName = fullName;
         Email = email;
+        Role = role;
     }
 
-    public static User Create(string fullName, string email) => new(fullName, email);
+    public static User Create(string fullName, string email, UserRole role = UserRole.User) => new(fullName, email, role);
 
     public void SetPasswordHash(string passwordHash) => PasswordHash = passwordHash;
 }

@@ -22,4 +22,8 @@
     <ProjectReference Include="..\OnionEcommerce.Infrastructure\OnionEcommerce.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="src\" />
+  </ItemGroup>
+
 </Project>

@@ -65,6 +65,32 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+
+        if (context.Database.GetPendingMigrations().Any())
+        {
+            Console.WriteLine("📦 Aplicando migrations...");
+            context.Database.Migrate();
+            Console.WriteLine("✅ Banco de dados atualizado!");
+        }
+
+        Console.WriteLine("🌱 Verificando Seed...");
+        await DbInitializer.SeedAsync(services);
+        Console.WriteLine("✅ Seed verificado!");
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"❌ Erro ao inicializar o banco de dados: {ex.Message}");
+        Console.ResetColor();
+    }
+}
+
+using (var scope = app.Services.CreateScope())
+{
     try
     {
         var consumerService = scope.ServiceProvider.GetRequiredService<UserRegistrationConsumerBackgroundService>();

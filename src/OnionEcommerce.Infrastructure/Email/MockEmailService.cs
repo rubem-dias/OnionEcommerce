@@ -6,7 +6,6 @@ public class MockEmailService : IEmailService
 {
     public Task SendWelcomeEmailAsync(string email, string fullName)
     {
-        // Simula envio de email (em produção seria via SMTP)
         Console.WriteLine($"?? Email de boas-vindas enviado!");
         Console.WriteLine($"   Para: {email}");
         Console.WriteLine($"   Nome: {fullName}");
